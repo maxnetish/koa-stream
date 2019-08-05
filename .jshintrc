@@ -1,6 +1,5 @@
 {
   "strict": true,
-  "esnext": true,
   "noyield": true,
   "unused": true,
   "undef": true,
@@ -16,5 +15,6 @@
   "nocomma": true,
   "nonew": true,
   "node": true,
-  "predef": ["$"]
+  "predef": ["$"],
+  "esversion": 8
 }
