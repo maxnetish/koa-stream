@@ -209,5 +209,5 @@ module.exports = {
     file: streamFile,
     buffer: streamBuffer,
     any: streamAny,
-    middlewareFactory,
+    serveWithRange: middlewareFactory,
 };
