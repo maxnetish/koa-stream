@@ -31,7 +31,7 @@ const makeRequestForAnyStream = function (filepath, options) {
     let app = new Koa();
     options = options || {};
 
-    app.use(stream.middlewareFactory(Object.assign(options, {
+    app.use(stream.serveWithRange(Object.assign(options, {
         resolveStream: (ctx, reqRange) => {
             if(reqRange) {
                 return fs.createReadStream(filepath, reqRange);
@@ -59,7 +59,7 @@ const makeRequest = function (filepath, options) {
     let app = new Koa();
     options = options || {};
 
-    app.use(stream.middlewareFactory(Object.assign(options, {
+    app.use(stream.serveWithRange(Object.assign(options, {
         resolveFilepath: () => filepath,
     })));
 
@@ -81,7 +81,7 @@ const makeRequestForBuffer = function (options) {
 
     let contentType = 'application/octet-stream';
 
-    app.use(stream.middlewareFactory(Object.assign(options, {
+    app.use(stream.serveWithRange(Object.assign(options, {
         resolveBuffer: () => ({buffer: testBuffer, contentType: contentType}),
     })));
 

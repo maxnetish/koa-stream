@@ -2,6 +2,9 @@
   "name": "koa-stream",
   "version": "0.3.0",
   "description": "Library to handle range requests with koa. Forked from https://github.com/claudetech/koa-stream",
+  "engines": {
+    "node" : ">=10.15.3"
+  },
   "main": "index.js",
   "scripts": {
     "test": "mocha ./test"
