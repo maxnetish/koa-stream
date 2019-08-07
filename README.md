@@ -1,30 +1,47 @@
 # Fork of koa-stream
-Bind with Koa2 
+Bind with Koa2. 
 
-Helper to stream files and buffers with range requests using koa.
+Helper to stream files, buffers or any read stream with range requests using koa2.
 This can be used with `video` tags, and other resource using the `Range` header.
 
 The implementation follows [RFC 7233](https://tools.ietf.org/html/rfc7233).
-With exception of __If-range__ header support.
+With exception of `If-range` header support.
 
-##Usage
+## Usage
 ```
+// response file
 app.use(stream.middlewareFactory({
-        resolveFilepath: ctx => filepath,
+        resolveFilepath: async (ctx) => filepath,
         root: '/path/to',
         allowDownload: true
 }));
 
+// response Buffer
 app.use(stream.middlewareFactory({
-        resolveBuffer: ctx => ({buffer: testBuffer, contentType: contentType}),
+        resolveBuffer: async (ctx) => ({buffer: testBuffer, contentType: contentType}),
+        allowDownload: true
+}));
+
+// response from any stream
+app.use(stream.middlewareFactory({
+        resolveStream: async (ctx, {start, end}) => Stream,
+        resolveStreamMetadata: async (ctx) => ({length: number, contentType: string})
         allowDownload: true
 }));
 ```
 
 ### Options
 * `resolveFilepath`: to get filepath to download
-* `resolveBuffer`: to get Buffer to stream
+* `resolveBuffer`: to get Buffer to download
+* `resolveStream`: to provide stream with given range (range can be omitted, you should provide whole stream in this case)
+* `resolveStreamMetadata`: to provide stream length and content type
 * `root`: the directory from which file paths will be resolved
-* `allowDownload`: allow to return the file instead of streaming it if not `Range` header is provided
+* `allowDownload`: allow to reponse whole file/buffer/stream instead of part it if not `Range` header is provided
 
+One of 
+* `resolveFilepath`
+* `resolveBuffer`
+* `resolveStream, resolveStreamMetadata` 
+
+is required.
 

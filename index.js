@@ -50,6 +50,16 @@ const sendBufferAtOnce = function (ctx, buffer, type) {
     ctx.body = buffer;
 };
 
+async function sendStreamAtOnce(ctx, options, {length, contentType}) {
+    ctx.set('Content-Type', contentType);
+    ctx.set('Content-Length', length);
+    ctx.set('Accept-Ranges', 'bytes');
+
+    // ask to open whole stream, without {start,end}
+    const stream = await options.resolveStream(ctx);
+    ctx.body = stream;
+}
+
 const streamRange = function (ctx, body, range, contentType) {
     ctx.set('Content-Range', 'bytes ' + range.start + '-' + range.end + '/' + range.totalLength);
     ctx.set('Content-Length', range.end - range.start + 1);
@@ -65,6 +75,11 @@ const handleFileStream = function (ctx, range, filepath) {
     let contentType = mime.getType(filepath);
     streamRange(ctx, stream, range, contentType);
 };
+
+async function handleStreamAny(ctx, range, contentType, options) {
+    const stream = await options.resolveStream(ctx, {start: range.start, end: range.end});
+    streamRange(ctx, stream, range, contentType);
+}
 
 async function getFileStat(filepath) {
     try {
@@ -127,10 +142,25 @@ const decode = function (filepath) {
     }
 };
 
-const streamFile = function (ctx, filepath, options) {
-    assert(ctx, 'koa context required');
+async function streamAny(ctx, options) {
+    // take length of stream
+    const {length, contentType} = await options.resolveStreamMetadata(ctx);
+    const range = parseRange(ctx.headers.range, length);
+
+    if (range === null) {
+        return options.allowDownload ? sendStreamAtOnce(ctx, options, {length, contentType}) : null;
+    }
+
+    if (range.start >= length || range.end >= length) {
+        return endRequest(ctx, length);
+    }
+
+    handleStreamAny(ctx, range, contentType, options);
+}
+
+async function streamFile(ctx, options) {
+    let filepath = await options.resolveFilepath(ctx);
     assert(filepath, 'filepath required');
-    options = options || {};
     let root = options.root ? path.normalize(path.resolve(options.root)) : '';
     filepath = filepath[0] === '/' ? filepath.slice(1) : filepath;
     filepath = decode(filepath);
@@ -139,43 +169,45 @@ const streamFile = function (ctx, filepath, options) {
     }
     filepath = resolvePath(root, filepath);
     return handleRequest(ctx, filepath, options);
-};
+}
 
-const streamBuffer = function (ctx, buffer, contentType, options) {
-    assert(ctx, 'koa context required');
+async function streamBuffer(ctx, options) {
+    const {buffer, contentType} = await options.resolveBuffer(ctx);
     assert(buffer instanceof Buffer, 'buffer required');
-    options = options || {};
     return handleBuffer(ctx, buffer, contentType, options);
-};
+}
 
 /**
  *
- * resolveFilepath or resolveBuffer required
- * @param options {resolveFilepath(ctx): Promise<string>, resolveBuffer(ctx): Promise<{buffer:Buffer, contentType:string}>, root: string, allowDownload: boolean } options
+ * resolveFilepath or resolveBuffer or (resolveStream ({start, end} can be undefined) with optional resolveStreamMetadata) required
+ * @param options {resolveFilepath(ctx): Promise<string>, resolveBuffer(ctx): Promise<{buffer:Buffer, contentType:string}>, resolveStream(ctx, {start, end}): Promise<Stream>, resolveStreamMetadata(ctx): Promise<{length:number,contentType:string}>, root: string, allowDownload: boolean } options
  * @returns {Function}
  */
 function middlewareFactory(options) {
     options = options || {};
     return async function (ctx) {
+        assert(ctx, 'koa context required');
+
         if (options.resolveFilepath) {
-            const filepath = await options.resolveFilepath(ctx);
-            await streamFile(ctx, filepath, {root: options.root, allowDownload: options.allowDownload});
+            await streamFile(ctx, options);
             return;
         }
         if (options.resolveBuffer) {
-            const {buffer, contentType} = await options.resolveBuffer(ctx);
-            console.log(`GOT buffer: ${buffer}`);
-            await streamBuffer(ctx, buffer, contentType, {root: options.root, allowDownload: options.allowDownload});
-            console.log(`Response biy: ${ctx.body}`);
+            await streamBuffer(ctx, options);
+            return;
+        }
+        if (options.resolveStream && options.resolveStreamMetadata) {
+            await streamAny(ctx, options);
             return;
         }
 
-        ctx.throw(500, 'Cannot resolve filepath or buffer from request');
+        ctx.throw(500, 'Cannot resolve filepath or buffer or stream from request');
     };
 }
 
 module.exports = {
     file: streamFile,
     buffer: streamBuffer,
+    any: streamAny,
     middlewareFactory,
 };
