@@ -3,6 +3,7 @@ Bind with Koa2.
 
 Helper to stream files, buffers or any read stream with range requests using koa2.
 This can be used with `video` tags, and other resource using the `Range` header.
+E.g. you can serve files from mongo grid fs bucket with `Range` for examle 
 
 The implementation follows [RFC 7233](https://tools.ietf.org/html/rfc7233).
 With exception of `If-range` header support.
