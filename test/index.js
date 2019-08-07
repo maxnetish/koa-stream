@@ -33,7 +33,7 @@ const makeRequestForAnyStream = function (filepath, options) {
 
     app.use(stream.serveWithRange(Object.assign(options, {
         resolveStream: (ctx, reqRange) => {
-            if(reqRange) {
+            if (reqRange) {
                 return fs.createReadStream(filepath, reqRange);
             }
             return fs.createReadStream(filepath);
@@ -60,7 +60,7 @@ const makeRequest = function (filepath, options) {
     options = options || {};
 
     app.use(stream.serveWithRange(Object.assign(options, {
-        resolveFilepath: () => filepath,
+        resolveFilepath: () => ({filepath}),
     })));
 
     // app.use(function* () {

@@ -8,9 +8,13 @@ export interface StreamBaseOptions {
 }
 
 export interface StreamFileOptions extends StreamBaseOptions {
-    resolveFilepath(ctx: Context): Promise<string> | string;
-
+    resolveFilepath(ctx: Context): Promise<StreamFileInfo> | StreamFileInfo;
     root?: string;
+}
+
+export interface StreamFileInfo {
+    filepath: string;
+    headers?: {[key: string]: string}
 }
 
 export interface StreamBufferOptions extends StreamBaseOptions {
@@ -20,16 +24,18 @@ export interface StreamBufferOptions extends StreamBaseOptions {
 export interface StreamBufferInfo {
     buffer: Buffer;
     contentType: string;
+    headers?: {[key: string]: string};
 }
 
 export interface StreamRange {
-    start: number,
-    end: number,
+    start: number;
+    end: number;
 }
 
 export interface StreamAnyMetadata {
-    length: number,
-    contentType: string,
+    length: number;
+    contentType: string;
+    headers?: {[key: string]: string};
 }
 
 export interface StreamAnyOptions extends StreamBaseOptions {
